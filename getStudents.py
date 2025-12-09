@@ -2,20 +2,32 @@ import json
 import boto3
 
 def lambda_handler(event, context):
-    # Initialize a DynamoDB resource object for the specified region
-    dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
-
-    # Select the DynamoDB table named 'studentData'
+    dynamodb = boto3.resource('dynamodb', region_name='eu-north-1')
     table = dynamodb.Table('studentData')
 
-    # Scan the table to retrieve all items
-    response = table.scan()
-    data = response['Items']
+    try:
+        response = table.scan()
+        data = response.get('Items', [])
 
-    # If there are more items to scan, continue scanning until all items are retrieved
-    while 'LastEvaluatedKey' in response:
-        response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
-        data.extend(response['Items'])
+        while "LastEvaluatedKey" in response:
+            response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+            data.extend(response.get("Items", []))
 
-    # Return the retrieved data
-    return data
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps(data)
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({"error": str(e)})
+        }
